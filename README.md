@@ -203,6 +203,7 @@ sns.barplot(x='Sex', y = 'Survived', data=train_df, palette=custom_palette)
 ```
 ![image](https://github.com/user-attachments/assets/949e599b-427c-4d1a-b1f8-7fc84a710f52)
 
+
 2. 나이
 여성의 구조율이 남성보다 월등히 높다는 것은 확인이 되었다. 이제 아이들에 대한 구조율이 어른보다 높은지 확인해 보겠다.
 ```
@@ -262,6 +263,7 @@ age_range_pclass_distribution = train_df.groupby(['Age_range', 'Pclass']).size()
 child_pclass_distribution = age_range_pclass_distribution.loc['Child']
 child_pclass_distribution
 ```
+
 
 3. 사회적 지위
 사회적 지위에 따른 비교는 Pclass(선실 등급)와 Fare(요금)을 통해 할 수 있다. 필자는 본문에서 Pclass를 먼저 분석해 보겠다. 지금까지 필자는 선실 등급이 높으면 구조율이 높다고 보고 있으며 지금까지 그 관점에 초점을 맞추고 EDA를 진행했다. 이번 파트에서 과연 그 추정이 맞는지 확인해 보고자 한다.
@@ -359,6 +361,7 @@ train_df.groupby(['Pclass'])['Fare_range'].value_counts()
 
 Fare range를 통한 구분이 맞지 않다는 것을 확인할 수 있다. Pclass가 1인 반면 Fare range는 3으로 12파운드보다 적은 가격으로 구매했다는 것이다. 즉, Fare는 나중에 있을 모델을 통한 예측에서 오히려 헷갈림을 줄 수 있다. 따라서 Fare은 생존자를 예측하는 데에 있어 중요한 데이터로 보기 어렵다고 생각한다.
 
+
 4. Embarked
 ```
 print(train_df['Embarked'].count())
@@ -422,11 +425,13 @@ embarked_pclass_counts
   * 위의 두 가지 이유와 함께 영국은 당시 다른 대륙 사람들에게 이민 경유지였다. 즉, 북미, 오세아니아 등으로 이주할 때 영국을 거쳐서 갔다.
 이러한 이유와 함께 당시 아메리칸 드림을 꿈꾸고 출발하는 3등실 승객이 영국에서 가장 많았을 것이라는 역사적 사실에 기반한 추측과 titanic data 분석을 통한 자료를 통해 사망자의 많은 비율이 영국 즉, Southampton에서 출발한 것을 확인할 수 있다. 따라서 필자는 Embarked를 주요한 feature로 생각하고 있다.
 
+
 5. Cabin
 Cabin에 대해 NaN 값을 확인해보면 687명이 선실 번호가 없다. 총 891명의 승객 중 687명의 데이터가 없는 것으로 필자는 Cabin feature은 삭제하기로 했다.
 ```
 train_df[train_df['Cabin'].isna()]
 ```
+
 
 6. SibSp, Parch
 SibSp는 같이 탑승한 형제자매 또는 배우자 인원 수이며, Parch는 같이 탑승한 부모님 또는 어린이 인원 수이다. 이 두 feature가 생존에 영향을 주었는지는 모르지만 자료 조사 중 부부가 함께 탑승했을 경우 남성이 구명 보트에 탑승하지 못 하자 여성도 구명 보트에 탑승하지 않고 같이 배에서 최후를 맞이 했다는 내용이 있어 예상치 못한 영향을 줄 수 있다고 판단했다. 다음은 wikipedia에서 발췌한 내용이다.
