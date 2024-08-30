@@ -173,3 +173,83 @@ print("------------------------------------------------------------ \n\n")
 
 다음과 같은 정보를 확인할 수 있다. train_df에는 총 12개의 feature가 있으며, Age에 177개, Cabin에 687개, Embarked에 2개의 NaN 값이 있다는 것을 알 수 있다. test_df에도 NaN 값이 있지만, train_df와 같은 feature에 있는 것을 통해 train_df에서 NaN 값을 제거하고자 한 방법을 그대로 적용하면 될 것이라고 판단된다.
 또한, 찾아 볼 수 있는 점으로 타이타닉에는 선원들을 제외한 총 1,317명이 탑승했지만 train_df, test_df를 합쳤을 때 총 1,309명으로 8명이 없다는 것을 알 수 있다. 이 부분에 대해서는 titanic data를 제공한 kaggle만이 이유를 알 것이다.
+
+   ###### 통계 및 시각화
+1. 여성과 아이들
+여성의 구조율을 확인하기 먼저 확인해야 할 것은 여성과 남성의 수를 확인해 보는 것이다.
+```
+train_df['Sex'].value_counts()
+```
+남성은 577명, 여성은 314명으로 총 891명인 것을 확인할 수 있다. 좀 더 구체적으로 확인해 보겠다.
+```
+print(train_df.groupby(['Sex','Survived'])['Survived'].count())
+print("\n-------------------------------------------------------------\n")
+
+female = train_df[train_df['Sex'] == 'female'].shape[0]
+female_0 = train_df[(train_df['Sex'] == 'female') & (train_df['Survived'] == 0)].shape[0]
+female_1 = train_df[(train_df['Sex'] == 'female') & (train_df['Survived'] == 1)].shape[0]
+
+male = train_df[train_df['Sex'] == 'male'].shape[0]
+male_0 = train_df[(train_df['Sex'] == 'male') & (train_df['Survived'] == 0)].shape[0]
+male_1 = train_df[(train_df['Sex'] == 'male') & (train_df['Survived'] == 1)].shape[0]
+
+print(f"여성 생존률: {round(female_1 / (female_0 + female_1) * 100, 2)}")
+print(f"남성 생존률: {round(male_1 / (male_0 + male_1) * 100, 2)}")
+```
+여성은 81명이 사망, 233명이 생존했다. 반면 남성은 468명이 사망, 109명이 생존한 것을 확인할 수 있다. 이렇게 나타난 수치를 비율을 통해서 남여 구조율을 비교하면 여성 생존률: 74.2 / 남성 생존률: 18.89로 여성의 구조율이 남성의 구조율보다 월등히 높다는 것을 알 수 있다. 시각화를 하면 다음과 같다.
+```
+custom_palette = ["#FFA07A", "#AFEEEE"]
+sns.barplot(x='Sex', y = 'Survived', data=train_df, palette=custom_palette)
+```
+![image](https://github.com/user-attachments/assets/949e599b-427c-4d1a-b1f8-7fc84a710f52)
+
+2. 나이
+여성의 구조율이 남성보다 월등히 높다는 것은 확인이 되었다. 이제 아이들에 대한 구조율이 어른보다 높은지 확인해 보겠다.
+```
+train_df.groupby(['Age', 'Survived'])['Survived'].count()
+```
+![image](https://github.com/user-attachments/assets/7954da53-71ca-4c87-bfa9-a122e09dd2ad)
+
+kaggle에서 제공하는 데이터는 나이에 대한 자료가 위와 같이 굉장히 복잡하게 구성되어 있다. 따라서 분석에 앞서 이러한 나이를 구분하기 쉽게 정리하려고 한다. 특히, 나이에는 177개의 NaN 값이 포함되어 있다. 따라서 Age의 NaN 값 또한 해결해야할 문제이다. 필자는 Age에 있는 NaN 값들을 각 객실 등급의 평균 나이를 대상으로 구분하려고 한다. 그 이유는 다음과 같다. 1등실의 경우 부유한 귀족 계층이 탑승한 선실로 어느정도 나이가 있는 사람들이 많이 탑승하고 있다고 판단했기 때문이다. 반면, 3등실의 경우 가난한 사람들이 탑승한 선실로 아메리칸 드림을 꿈꾸고 타이타닉호의 마지막 정착지인 뉴욕 즉, 미국으로 향하는 사람들이 많았다고 판단하고 있다. 따라서 3등실의 경우 젊은 사람들이 많을 것으로 생각하고 있다. 2등실의 경우 중산층이 많은 선실로 1등실, 3등실의 중간으로 평균 나이 역시 중간으로 생각하고 NaN 값을 처리하려고 한다.
+```
+nan_age_df = train_df[train_df['Age'].isna()]
+nan_counts_by_pclass = nan_age_df.groupby(['Pclass'])['PassengerId'].count()
+nan_counts_by_pclass
+```
+1등실에는 30명, 2등실에는 11명, 3등실에는 136명의 승객들이 Age가 NaN 값이라는 것을 확인할 수 있다. 이들의 나이를 위에서 설명했던 방법을 토대로 각 선실 등급의 평균으로 대체하려고 한다.
+```
+average_pclass = train_df.groupby('Pclass')['Age'].mean()
+train_df['Age'] = train_df.apply(lambda row: average_pclass[row['Pclass']] if pd.isna(row['Age']) else row['Age'], axis=1)
+# NaN 값 확인
+train_df['Age'].isna().sum()
+```
+Age에 대한 NaN 값을 처리했으니 연령대에 따라 구분을 해서 카테고리를 나누려고 한다. 기준은 현재 대한민국을 기준으로 했다. 당시 시대 상에 맞지 않다는 한계가 있지만 자료조사의 한계로 인해 현재 대한민국을 기준으로 구분하였다. 초등학교 입학 전까지를 Baby, 중학교 입학 전까지를 Child로 고등학교 졸업 전 즉, 고3까지를 Teenager로 구분하였다. 이후 남성 평균 대학 졸업 나이인 26까지를 Student로 그 이후부터 대한민국 통계청 자료에 따라 39세까지를 청년층(Young Adult)으로 구분했다. 이후 64세까지를 중장년층(Adult)로 그 이후는 노년층(Elderly)로 구분했다.
+```
+def get_category(age):
+    cat = ''
+    if age <= -1: cat = 'Unknown'
+    elif age <= 8: cat = 'Baby'
+    elif age <= 13: cat = 'Child'
+    elif age <= 19: cat = 'Teenager'
+    elif age <= 26: cat = 'Student'
+    elif age <= 39: cat = 'Young Adult'
+    elif age <= 64: cat = 'Adult'
+    else: cat = 'Elderly'        
+    return cat
+
+group_names = ['Unknown', 'Baby', 'Child', 'Teenager', 'Student', 'Young Adult', 'Adult', 'Elderly']
+ 
+train_df['Age_range'] = train_df['Age'].apply(lambda x : get_category(x))
+predict_df['Age_range'] = predict_df['Age'].apply(lambda x : get_category(x))
+```
+연령대을 구분하고 나서 연령대별 선실 등급을 출력해보면 다음과 같다.
+```
+age_range_pclass = train_df.groupby(['Age_range', 'Pclass']).size().unstack()
+age_range_pclass
+```
+![image](https://github.com/user-attachments/assets/4de00361-4d4c-4c34-860b-ee61bb6b7874)
+
+NaN 값을 각 Pclass별 평균 나이로 대체했기 때문에 Young Adult, Adult의 값이 많은 것을 알 수 있다. 또한, 1등실에 Adult의 비율이, 3등실에 Young Adult가 많은 것을 알 수 있다. 뿐만 아니라 Baby, Child, Teenager의 수가 많은 것을 통해 가족 단위로 많이 탑승한 것을 알 수 있다. 다음으로 연령대별 생존자를 시각화하면 다음과 같다. 
+
+
+
