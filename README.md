@@ -169,6 +169,7 @@ print(predict_df.isnull().sum())
 print(predict_df.columns)
 print("------------------------------------------------------------ \n\n")
 ```
-![image](https://github.com/user-attachments/assets/bb8c2523-181a-42dd-93ed-cad9d8278738)
+![image](https://github.com/user-attachments/assets/58009547-1ccf-4088-966c-4cf510d0a057)
+
 다음과 같은 정보를 확인할 수 있다. train_df에는 총 12개의 feature가 있으며, Age에 177개, Cabin에 687개, Embarked에 2개의 NaN 값이 있다는 것을 알 수 있다. test_df에도 NaN 값이 있지만, train_df와 같은 feature에 있는 것을 통해 train_df에서 NaN 값을 제거하고자 한 방법을 그대로 적용하면 될 것이라고 판단된다.
 또한, 찾아 볼 수 있는 점으로 타이타닉에는 선원들을 제외한 총 1,317명이 탑승했지만 train_df, test_df를 합쳤을 때 총 1,309명으로 8명이 없다는 것을 알 수 있다. 이 부분에 대해서는 titanic data를 제공한 kaggle만이 이유를 알 것이다.
