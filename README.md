@@ -50,7 +50,7 @@ kaggle에서 제공하는 Tatanic data를 이용해 EDA와 model 학습을 통�
 ---
 
 ##### titanic에 대한 정보 수집
-   ###### 문제 정의
+   ##### 문제 정의
 titanic data set을 이용한 Kaggle에서 진행하는 대회는 생존자를 예측하는 문제이다.
 * PassengerId: 탑승자 데이터 일련번호
 * Survived: 생존 여부, 0 = 사망, 1 = 생존
@@ -65,7 +65,7 @@ titanic data set을 이용한 Kaggle에서 진행하는 대회는 생존자를 �
 * Cabin: 선실 번호
 * Embarked: 중간 정착 항구, C = Cherbourg, Q = Queenstown, S = Southampton
 titanic_train.csv을 기반으로 titanic에 대한 지식과 적절한 EDA를 진행한 후 test.csv의 데이터를 이용해 예측한 후 결과를 gender_submission.csv와 결합한 후 제출하고 제출하는 문제이다.
-   ###### 분석 대상에 대한 이해
+   ##### 분석 대상에 대한 이해
 titanic data set을 이용한 Kaggle에서 진행하는 대회는 생존자를 예측하는 문제이다.
 * 길이: 269.1m
 * 폭: 28m
@@ -142,7 +142,7 @@ titanic에 대한 정보를 바탕으로 여성과 아이들의 구조율이 높
 
 ---
 
-   ###### 공통 코드
+   ##### 공통 코드
 ```
 import numpy as np
 import pandas as pd
@@ -155,7 +155,7 @@ gender_submission_df = pd.read_csv('./titanic/gender_submission.csv')
 ```
 kaggle에서 제공하는 titanic data를 불러들이는데 사용하는 코드로 앞으로 사용되는 data와 해당 data를 각각 train_df, predict_df, gender_submission으로 선언한 부분이다.
 
-   ###### titanic data set에 대한 기본적인 정보
+   ##### titanic data set에 대한 기본적인 정보
 ```
 print("train_df 데이터의 행 개수:", len(train_df))
 print('train_df: 데이터 세트 Null 값 갯수 ',train_df.isnull().sum().sum())
@@ -174,7 +174,7 @@ print("------------------------------------------------------------ \n\n")
 다음과 같은 정보를 확인할 수 있다. train_df에는 총 12개의 feature가 있으며, Age에 177개, Cabin에 687개, Embarked에 2개의 NaN 값이 있다는 것을 알 수 있다. test_df에도 NaN 값이 있지만, train_df와 같은 feature에 있는 것을 통해 train_df에서 NaN 값을 제거하고자 한 방법을 그대로 적용하면 될 것이라고 판단된다.
 또한, 찾아 볼 수 있는 점으로 타이타닉에는 선원들을 제외한 총 1,317명이 탑승했지만 train_df, test_df를 합쳤을 때 총 1,309명으로 8명이 없다는 것을 알 수 있다. 이 부분에 대해서는 titanic data를 제공한 kaggle만이 이유를 알 것이다.
 
-   ###### 통계 및 시각화
+   ##### 통계 및 시각화
 1. 여성과 아이들
    
 여성의 구조율을 확인하기 먼저 확인해야 할 것은 여성과 남성의 수를 확인해 보는 것이다.
