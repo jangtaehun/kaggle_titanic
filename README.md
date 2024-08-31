@@ -473,6 +473,8 @@ predict_df = predict_df[feature]
 ```
 ![image](https://github.com/user-attachments/assets/160321bb-8be3-4afb-b5d7-e341d75848ed)
 
+---
+
 #### 모델 학습
 모델 학습 전에 모델을 평가하는 방법으로 오차행렬, 정확도, 정밀도, 재현율, f1 score, roc auc 곡선을 통해 평가를 할 것이다.
 ```
@@ -843,6 +845,8 @@ best_cat_model.fit(X_train, y_train)
 <img width="687" alt="image" src="https://github.com/user-attachments/assets/b42c2dc6-cacd-4397-b93f-412e9395351b">
 
 최종적으로 가장 좋은 점수를 받은 것은 LightGBM으로 0.78229이다. 
+
+---
 
 #### 결론
 kaggle에서 제공하는 titanic data를 이용해 분석을 진행했으며, 모델을 학습시켜 점수를 얻는 과정을 진행했다. 이 부분에서 느낀 점은 다음과 같다. 891개의 데이터는 머신러닝을 이용하는 데에는 부족한 데이터이며 feature 역시 많이 부족하다는 것을 느꼈다. 또한, feature 중에서 생존 가능성이 가장 높을 것으로 예측 가능한 부분이 Sex, Pclass, Age로 생각하고 있는데 이 것으로는 생존 유무를 예측하는 데에는 한계가 있다고 느꼈다. 예를 들어 위에서 언급했듯 부부가 함께 타이타닉호에 탑승해 있다가 부인은 구명보트에 탑승했지만 남편은 남성이라는 이유로 탑승하지 못 했을 때, 부인이 남편과 같이 하겠다고 탑승하지 않을 때, 어린 아이지만 부모를 찾지 못 해서 객실 안에 계속 머물다가 구조되지 못한 사례 등등 예상하지 못하는 부분이 많이 있다. 뿐만 아니라 Cabin의 경우 NaN 값이 687개로 사용할 수 없는 feature였다. 중요한 feature 중 하나인 Age의 경우에도 NaN 값이 177개로 많았다. 
