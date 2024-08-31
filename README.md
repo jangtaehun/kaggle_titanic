@@ -544,3 +544,313 @@ gender_submission_df['Survived'] = predict_titanic_pred_rf
 gender_submission_df.to_csv('titanic_submission_rf.csv',index=False)
 ```
 ![image](https://github.com/user-attachments/assets/eddc5f4b-8651-4cf7-9ff7-202d45b7901b)
+
+하이퍼파라미터 튜닝을 하지 않고 기본적으로 사용했을 때 kaggle에서 점수는 0.77751이 나왔다. 이번에는 그리드서치를 이용해 하이퍼파라미터를 튜닝해보려고 한다.
+```
+from sklearn.model_selection import GridSearchCV
+
+params = {
+    'max_depth': np.arange(1, 10, 1),
+    'min_samples_leaf' : np.arange(1, 40, 1),
+    'min_samples_split' : np.arange(2, 40, 1)
+}
+
+rf_clf = RandomForestClassifier(n_estimators=100, n_jobs=-1, oob_score=True)
+grid_cv = GridSearchCV(rf_clf , param_grid=params , cv=2, n_jobs=-1 )
+grid_cv.fit(X_train , y_train)
+
+print('최적 하이퍼 파라미터:\n', grid_cv.best_params_)
+print('최고 예측 정확도: {0:.4f}'.format(grid_cv.best_score_))
+
+best_rf = grid_cv.best_estimator_
+
+# feature importance 추출 
+feature_names = train_df.columns.drop('Survived')
+
+# feature importance를 column 별로 시각화 하기 
+sns.barplot(x=best_rf.feature_importances_ , y=feature_names)
+
+
+pred = best_rf.predict(X_train) 
+proba = best_rf.predict_proba(X_train)[:, 1]
+
+best_rf_pred = best_rf.predict(X_test) 
+best_rf_proba = best_rf.predict_proba(X_test)[:, 1]
+
+get_clf_eval(y_train, pred, proba)
+get_clf_eval(y_test , best_rf_pred, best_rf_proba)
+```
+최적 하이퍼 파라미터:{'max_depth': 8, 'min_samples_leaf': 6, 'min_samples_split': 29}
+최고 예측 정확도: 0.8026
+
+이렇게 결과를 확인할 수 있다.
+<img width="554" alt="image" src="https://github.com/user-attachments/assets/c9207221-8e60-47bd-ac61-dfc9f103ce44">
+```
+오차 행렬
+[[355  29]
+ [ 87 152]]
+정확도: 0.8138, 정밀도: 0.8398, 재현율: 0.6360,    F1: 0.7238, AUC:0.8742
+오차 행렬
+[[151  14]
+ [ 35  68]]
+정확도: 0.8172, 정밀도: 0.8293, 재현율: 0.6602,    F1: 0.7351, AUC:0.8850
+```
+다음과 같은 결과가 나온다. 하이퍼파라미터는 모델 학습 과정에서 사용자가 직접 설정해야 하는 파라미터로, 모델의 성능에 큰 영향을 미친다. 이 때 그리드서치를 사용하면 사용자가 설정한 하이퍼파라미터 값들의 가능한 모든 조합을 탐색하여 가장 좋은 성능을 내는 조합을 찾을 수 있도록 도와준다. 따라서 결과로 최적의 하이퍼파라미터 값이 나오고 그 값을 토대로 훈련을 했을 때 feature importance를 확인해 볼 수 있다. 그리드서치를 이용한 모델은 Sex, Pclass를 중요한 특성으로 사용했다. 
+
+그리드서치를 사용해 최적의 하이퍼파라미터를 튜닝한 후 kaggle에 제출했을 때 다음과 같은 점수를 얻었다. 기존 0.77751 보다 살짝 높은 점수를 보여준다.
+
+<img width="711" alt="image" src="https://github.com/user-attachments/assets/19762fd2-6862-4236-a692-aeafbee821d2">
+
+kaggle에 제출하면 다음과 같은 점수를 확인할 수 있다.
+   
+   ##### XGBoost
+XGBoost 또한 Randomforest와 같게 처음에는 하이퍼파라미터 튜닝을 하지 않고 기본적으로 진행해 보고 XGBoost부터는 그리드서치가 아닌 Hyperopt를 이용해 하이퍼파라미터를 튜닝해보고자 한다.
+```
+리드서치가 아닌 Hyperopt를 이용해 하이퍼파라미터를 튜닝해보고자 한다.
+
+from xgboost import XGBClassifier, plot_importance
+
+xgb = XGBClassifier(random_state=RANDOM_STATE)
+xgb.fit(X_train, y_train, verbose=True)
+
+xgb_preds = xgb.predict(X_test)
+xgb_pred_proba = xgb.predict_proba(X_test)[:, 1]
+
+get_clf_eval(y_test , xgb_preds, xgb_pred_proba)
+
+fig, ax = plt.subplots(figsize=(10, 5))
+plot_importance(xgb, ax=ax)
+```
+<img width="708" alt="image" src="https://github.com/user-attachments/assets/a39a5fa5-b25d-4a9b-8edc-2a590fe0be04">
+
+randomforest와 다르게 Sex와 Pclass 보다 Age_range가 중요하게 작용한 것을 확인할 수 있다. F1 score가 조금 더 높게 나왔지만kaggle에 제출했을 때 다음과 같은 점수를 얻을 수 있다. 오히려 randomforest로 학습했을 때 보다 더 낮게 나왔다.
+<img width="708" alt="image" src="https://github.com/user-attachments/assets/074bd4fd-4567-4c86-b07b-bac7aec6fb7e">
+
+오차행렬을 통해 결과를 좀더 자세하게 보면 다음과 같다.
+<img width="708" alt="image" src="https://github.com/user-attachments/assets/5e06b315-e61d-471b-a8b4-4b4e771264bd">
+
+위에가 train data, 아래가 test_data로 예측했을 때의 결과이다. 과적합이 된 것을 확인할 수 있다. 뿐만 아니라 오차행렬을 통해 False Positive, False Negative 역시 높게 나온 것을 확인할 수 있다. 즉, 점수는 높지만 예측을 제대로 하지 못 하고 있다는 것이다. 이제 하이퍼파라미터를 튜닝해 보겠다.
+```
+from hyperopt import hp, fmin, tpe, Trials
+from sklearn.model_selection import KFold
+from sklearn.metrics import roc_auc_score
+
+xgb_search_space = {'max_depth': hp.quniform('max_depth', 2, 15, 1), 
+                    'min_child_weight': hp.quniform('min_child_weight', 1, 6, 1),
+                    'colsample_bytree': hp.uniform('colsample_bytree', 0.5, 0.95),
+                    'learning_rate': hp.uniform('learning_rate', 0.01, 0.2)}
+
+def objective_func(search_space):
+    xgb_clf = XGBClassifier(n_estimators=100,
+                            max_depth=int(search_space['max_depth']),
+                            min_child_weight=int(search_space['min_child_weight']),
+                            colsample_bytree=search_space['colsample_bytree'],
+                            learning_rate=search_space['learning_rate'],
+                            early_stopping_rounds=30,
+                            eval_metric='logloss',
+                           random_state=RANDOM_STATE)
+    
+    roc_auc_list= []
+    kf = KFold(n_splits=5)
+    
+    for tr_index, val_index in kf.split(X_train):
+        X_tr, y_tr = X_train.iloc[tr_index], y_train.iloc[tr_index]
+        X_val, y_val = X_train.iloc[val_index], y_train.iloc[val_index]
+        
+        xgb_clf.fit(X_tr, y_tr, eval_set=[(X_tr, y_tr), (X_val, y_val)], verbose=False)
+        score = roc_auc_score(y_val, xgb_clf.predict_proba(X_val)[:, 1])
+        roc_auc_list.append(score)
+    return -1 * np.mean(roc_auc_list)
+
+trials = Trials()
+best = fmin(fn=objective_func,
+            space=xgb_search_space,
+            algo=tpe.suggest,
+            max_evals=50, # 최대 반복 횟수를 지정합니다.
+            trials=trials,
+            rstate=np.random.default_rng()
+           )
+print('best:', best)
+
+xgb_clf = XGBClassifier(n_estimators=500, learning_rate=round(best['learning_rate'], 5),
+                        max_depth=int(best['max_depth']), min_child_weight=int(best['min_child_weight']), 
+                        colsample_bytree=round(best['colsample_bytree'], 5), random_state=RANDOM_STATE)
+
+xgb_clf.fit(X_tr, y_tr, early_stopping_rounds=100, eval_metric="auc",eval_set=[(X_tr, y_tr), (X_val, y_val)])
+xgb_roc_score = roc_auc_score(y_test, xgb_clf.predict_proba(X_test)[:,1])
+print('ROC AUC: {0:.4f}'.format(xgb_roc_score))
+```
+hyperopt로 하이퍼파라미터를 튜닝하기 위해 위와 같이 코드를 작성하고 모델을 학습하면 다음과 같이 결과를 확인할 수 있다.
+
+best: {'colsample_bytree': 0.613363205874114, 'learning_rate': 0.12571035945607772, 'max_depth': 11.0, 'min_child_weight': 2.0}
+
+<img width="708" alt="image" src="https://github.com/user-attachments/assets/ab576b85-5e03-451a-afcf-8edfe0473fb3">
+
+하이퍼파라미터로 튜닝하기 전의 XGBoost보다 과적합이 많이 해소된 것을 확인할 수 있다. kaggle에 제출하면 다음과 같은 결과를 얻을 수 있다.
+
+<img width="708" alt="image" src="https://github.com/user-attachments/assets/5aabc934-26fb-46ca-a336-bd2a9ab986de">
+
+점수가 더 높게 나오긴 했지만 randomforest보다 낮은 점수를 보여준다. 그 이유는 다음과 같다. 정밀도와 AUC가 높은 반면, 재현율이 상대적으로 낮다는 점에서, 모델이 양성을 잡아내는 능력이 부족해 점수가 낮은 것이다.
+
+   ##### LightGBM
+LightGBM 역시 XGBoost와 같이 하이퍼파라미터를 튜닝하지 않고 모델을 학습해보고 hyperopt로 학습을 한 후 최적의 하이퍼파라미터를 찾은 후 모델을 학습해 보겠다.
+```
+from lightgbm import early_stopping
+from lightgbm import LGBMClassifier
+
+lgbm = LGBMClassifier(random_state=RANDOM_STATE)
+
+evals = [(X_tr, y_tr), (X_val, y_val)]
+lgbm.fit(X_tr, y_tr, callbacks=[early_stopping(stopping_rounds=50)], eval_metric="logloss", eval_set=evals)
+
+preds = lgbm.predict(X_test)
+pred_proba = lgbm.predict_proba(X_test)[:, 1]
+get_clf_eval(y_test, preds, pred_proba)
+```
+<img width="624" alt="image" src="https://github.com/user-attachments/assets/421726a3-de16-4c92-a37d-028febd68ebc">
+
+기본적으로 했을 때도 XGBoost와 비교했을 때 괜찮은 성능을 보여준다. 하이퍼파라미터 튜닝을 한 XGBoost와 비교했을 때 재현율이 약간 낮아져 모델이 양성 데이터를 적게 탐지하지만, 하이퍼파라미터 튜닝을 하지 않았다는 점에서 괜찮은 성능을 보여주고 있다. kaggle에 제출하면 다음과 같다.
+
+<img width="727" alt="image" src="https://github.com/user-attachments/assets/dfead156-2421-431f-82ef-e099d5aa5f3b">
+
+기본 XGBoost를 사용했을 때보다 확실 더 높은 점수를 얻을 수 있다. 이제 하이퍼파라미터를 튜닝해보겠다.
+```
+from hyperopt import hp, fmin, tpe, Trials
+from sklearn.model_selection import KFold
+from sklearn.metrics import f1_score, roc_auc_score
+from lightgbm import early_stopping, LGBMClassifier
+import numpy as np
+
+lgbm_search_space = {'num_leaves': hp.quniform('num_leaves', 10, 40, 1),
+                     'max_depth': hp.quniform('max_depth', 5, 20, 1),
+                     'min_child_samples': hp.quniform('min_child_samples', 30, 100, 1),
+                     'subsample': hp.uniform('subsample', 0.7, 1),
+                     'learning_rate': hp.uniform('learning_rate', 0.01, 0.1)}
+
+def objective_func(search_space):
+    lgbm_clf =  LGBMClassifier(n_estimators=100, num_leaves=int(search_space['num_leaves']),
+                               max_depth=int(search_space['max_depth']),
+                               min_child_samples=int(search_space['min_child_samples']),
+                               subsample=search_space['subsample'],
+                               verbose=-1,
+                               learning_rate=search_space['learning_rate'])
+    f1_list = []
+    kf = KFold(n_splits=5)
+    
+    for tr_index, val_index in kf.split(X_train):
+        X_tr, X_val = X_train.iloc[tr_index], X_train.iloc[val_index]
+        y_tr, y_val = y_train.iloc[tr_index], y_train.iloc[val_index]
+        
+        lgbm_clf.fit(X_tr, y_tr, callbacks=[early_stopping(stopping_rounds=50)], eval_set=[(X_tr, y_tr), (X_val, y_val)], eval_metric='logloss')
+        score = f1_score(y_val, lgbm_clf.predict(X_val))
+        f1_list.append(score)
+    
+    return -1 * np.mean(f1_list)
+
+trials = Trials()
+best = fmin(fn=objective_func, space=lgbm_search_space, algo=tpe.suggest,
+            max_evals=50, trials=trials, rstate=np.random.default_rng(seed=30))
+
+lgbm_clf =  LGBMClassifier(n_estimators=500, num_leaves=int(best['num_leaves']),
+                           max_depth=int(best['max_depth']),
+                           min_child_samples=int(best['min_child_samples']),
+                           subsample=round(best['subsample'], 5),
+                           learning_rate=round(best['learning_rate'], 5))
+
+lgbm_clf.fit(X_train, y_train, callbacks=[early_stopping(stopping_rounds=100)], eval_metric="logloss", eval_set=[(X_train, y_train), (X_test, y_test)])
+
+lgbm_pred = lgbm_clf.predict(X_test)
+lgbm_proba = lgbm_clf.predict_proba(X_test)[:, 1]
+
+lgbm_f1_score = f1_score(y_test, lgbm_pred)
+lgbm_roc_score = roc_auc_score(y_test, lgbm_proba)
+```
+<img width="497" alt="image" src="https://github.com/user-attachments/assets/6a054da1-0f42-47a4-9fe3-784a245da7bb">
+
+f1 score의 경우 가장 높게 나왔다. 뿐만 아니라 재현율이 0.7379로 가장 높은 점수를 보여줬던 하이퍼파라미터 튜닝을 한 randomforest보다 높게  나왔다. kaggle에 제출하면 다음과 같은 점수를 확인할 수 있다.
+
+<img width="698" alt="image" src="https://github.com/user-attachments/assets/448baa3c-28fa-4f99-9082-e293116fda38">
+
+0.78229로 가장 높은 점수가 나왔다. 
+
+   ##### CatBoost
+CatBoost 또한 위에서 했던 방법대로 진행해보겠다. 단, 이번에는 hyperopt가 아닌 optuna를 사용해 하이퍼파라미터를 튜닝해보려고 한다.
+```
+from catboost import CatBoostClassifier
+
+cat = CatBoostClassifier(random_state=RANDOM_STATE)
+cat.fit(X_train, y_train)
+```
+<img width="510" alt="image" src="https://github.com/user-attachments/assets/7dc2ac2d-7666-4a58-8ff3-72d73f32bde7">
+
+LiightGBM보다 더 좋은 성능을 보여주고 있다. kaggle에 제출하면 다음과 같은 점수를 받을 수 있다.
+
+<img width="678" alt="image" src="https://github.com/user-attachments/assets/01e4e84f-92a1-46a1-8541-0250bb205dac">
+
+randomforest로 학습했을 때와 같은 점수를 보여주고 있다. 이제 optuna를 통해 하이퍼파라미터를 튜닝해보겠다.
+```
+from sklearn.model_selection import cross_val_score
+import optuna
+
+def objective(trial):
+    iterations = trial.suggest_int('iterations', 100, 1000, step=10)
+    learning_rate = trial.suggest_float('learning_rate', 0.1, 1.0, step=0.1)
+    depth = trial.suggest_int('depth', 3, 15)
+    l2_leaf_reg = trial.suggest_float('l2_leaf_reg', 0.1, 10.0)
+    bagging_temperature = trial.suggest_float('bagging_temperature', 0.0, 1.0)
+    class_weight = trial.suggest_float('class_weight', 1.0, 50.0)
+    random_strength = trial.suggest_float('random_strength', 0.0, 10.0)
+    od_wait = trial.suggest_int('od_wait', 10, 50)
+
+
+    model = CatBoostClassifier(
+        iterations=iterations,
+        learning_rate=learning_rate,
+        depth=depth,
+        l2_leaf_reg=l2_leaf_reg,
+        bagging_temperature=bagging_temperature,
+        class_weights=[1, class_weight],
+        random_strength=random_strength,
+        od_wait=od_wait,
+        random_state=RANDOM_STATE,
+        verbose=0
+    )
+    
+    model.fit(X_train, y_train)
+    y_val_pred = model.predict(X_test)
+    f1 = f1_score(y_test, y_val_pred, pos_label=0)
+    print(f"Trial {trial.number} finished with F1 score: {f1}")
+    return f1
+
+
+study = optuna.create_study(direction='maximize')
+study.optimize(objective, n_trials=100, n_jobs=-1)
+
+best_params = study.best_params
+print("Best params: ", best_params)
+
+
+if 'class_weight' in best_params:
+    best_params['class_weights'] = [1, best_params.pop('class_weight')]
+
+best_cat_model = CatBoostClassifier(**best_params, random_state=RANDOM_STATE)
+best_cat_model.fit(X_train, y_train)
+```
+<img width="510" alt="image" src="https://github.com/user-attachments/assets/295315af-7a2f-4697-adfa-d64da765e149">
+
+다음과 같이 결과를 확인할 수 있으며 kaggle에 제출하면 0.77990으로 randomforest와 같은 점수를 받을 수 있다. 
+
+<img width="687" alt="image" src="https://github.com/user-attachments/assets/b42c2dc6-cacd-4397-b93f-412e9395351b">
+
+최종적으로 가장 좋은 점수를 받은 것은 LightGBM으로 0.78229이다. 
+
+#### 결론
+kaggle에서 제공하는 titanic data를 이용해 분석을 진행했으며, 모델을 학습시켜 점수를 얻는 과정을 진행했다. 이 부분에서 느낀 점은 다음과 같다. 891개의 데이터는 머신러닝을 이용하는 데에는 부족한 데이터이며 feature 역시 많이 부족하다는 것을 느꼈다. 또한, feature 중에서 생존 가능성이 가장 높을 것으로 예측 가능한 부분이 Sex, Pclass, Age로 생각하고 있는데 이 것으로는 생존 유무를 예측하는 데에는 한계가 있다고 느꼈다. 예를 들어 위에서 언급했듯 부부가 함께 타이타닉호에 탑승해 있다가 부인은 구명보트에 탑승했지만 남편은 남성이라는 이유로 탑승하지 못 했을 때, 부인이 남편과 같이 하겠다고 탑승하지 않을 때, 어린 아이지만 부모를 찾지 못 해서 객실 안에 계속 머물다가 구조되지 못한 사례 등등 예상하지 못하는 부분이 많이 있다. 뿐만 아니라 Cabin의 경우 NaN 값이 687개로 사용할 수 없는 feature였다. 중요한 feature 중 하나인 Age의 경우에도 NaN 값이 177개로 많았다. 
+
+이처럼 타이타닉 생존자 예측 머신러닝에서 아쉬운 부분은 역시 데이터의 부족이었다. 따라서 특정 점수 이상의 예측 결과를 얻지 못 했다는 데에 한계가 있다. 뿐만 아니라 모델을 학습하는 방법 역시 다양하며, random_state를 어떻게 사용하냐에 따라 결과가 달라지기 때문에 현재 점수를 개선할 방법은 다양하게 있다.
+
+titanic data를 이용해 EDA를 진행하고 간단하게 model을 학습하는 것은 머신러신에 입문할 때 가장 많이 접하는 것이다. 필자 역시 처음 공부를 할 때 타이타닉 생존자 예측을 연습으로 접했었다. 하지만 이번에 새롭게 분석을 하면서 이전에 했던 코드를 보면서 과거와 현재의 차이를 느끼게 되었다. 처음 접할 당시에는 생존자와 사망자의 비율을 통해 데이터의 불균형에 대해 생각해보지 않았고, 다른 사람(블로그, 강의)의 방법을 따라하는 코드 사용으로 주관적인 생각이 들어가지 않았다. 그리고 Feature engineering이 아닌 model에 의존했다. 그래서 특정 점수 이상을 올라가지 못 했었다. 물론 지금도 많이 부족하지만 그전에 넘지 못한 점수를 넘겼다는 것에 의의를 두고 있다.
+
+추가적으로 kaggle에서 다른 사람들의 코드를 보면서 느낀 점은 cheating, data leakage를 통해 높은 점수를 얻은 사람들이 많다는 것을 느꼈다. 대표적으로 tatinic <https://titanicfacts.net/titanic-survivors-list/>에 titanic에 탑승한 사람들의 list가 있다. 이 리스트를 통해 구명보트에 탑승했는지 여부에 대해 알아내서 학습을 했다. 자료조사를 통해서 얻은 정보라고 할 수 있겠지만 필자는 이 방법은 답을 알아내서 진행한 방법이라고 생각하고 있어 학습을 하는 데 좋은 방법은 아니라고 생각한다. 
+
+추가적으로 유튜브, 구글링 등 여러 가지 방법을 추가해 모델을 학습시켜 보았지만 개인적으로 분석하며 얻은 점수가 가장 높게 나왔다. titanic data를 토대로 분석하는 것은 여기까지 하고 kaggle에서 다음 데이터를 추가적으로 가져와서 분석을 해볼 예정이다.
